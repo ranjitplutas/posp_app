@@ -1,0 +1,309 @@
+:root {
+  --color-primary: #0b5278;
+  --color-primary-hover: #094566;
+  --color-primary-dark: #073b58;
+  --color-primary-soft: #dbe9ef;
+
+  --color-accent: #78b82a;
+  --color-accent-hover: #629522;
+  --color-accent-dark: #4e8515;
+  --color-accent-soft: #e8f3d6;
+
+  --color-red: #c0392b;
+  --color-red-soft: #f8e2df;
+
+  --color-amber: #b8860b;
+  --color-amber-soft: #fdf2d0;
+
+  --color-bg: #f5f7f8;
+  --color-surface: #ffffff;
+  --color-line: #e2e8ec;
+  --color-text: #1c2b33;
+  --color-text-muted: #5b6b73;
+  --color-text-subtle: #8b9aa1;
+
+  --font-sans: var(--font-dm-sans), "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-barlow-condensed), "Arial Narrow", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  padding: 0;
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+a { color: inherit; }
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+@keyframes shield-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+@keyframes shield-shake {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-6deg); }
+  40% { transform: rotate(5deg); }
+  60% { transform: rotate(-3deg); }
+  80% { transform: rotate(2deg); }
+}
+@keyframes lock-drop {
+  0% { transform: translateY(-6px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes toast-in {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes ring-fade {
+  0% { opacity: 0.5; transform: scale(0.85); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+@keyframes orbit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes orbit-spin-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+@keyframes glow-breathe {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.08); }
+}
+@keyframes badge-pop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes clock-tick {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes float-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes dot-wave {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+
+.do-stat-card-clickable:hover {
+  box-shadow: 0 4px 14px rgba(11, 82, 120, 0.12);
+  transform: translateY(-1px);
+}
+
+:root {
+  --do-header-height: 60px;
+}
+
+/* App shell: header + sidebar are pinned; only .do-appshell-main scrolls. */
+.do-appshell-root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.do-appshell-header {
+  flex-shrink: 0;
+  height: var(--do-header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 20px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-line);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.do-appshell-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.do-appshell-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--color-primary-dark);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px;
+  overflow-y: auto;
+}
+
+.do-appshell-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 32px;
+  background: var(--color-bg);
+}
+
+.do-appshell-hamburger {
+  display: none;
+}
+
+.do-appshell-backdrop {
+  display: none;
+}
+
+.do-appshell-drawer-close {
+  display: none;
+}
+
+.do-posp-detail-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 20px;
+}
+
+.do-posp-detail-mobile {
+  display: none;
+}
+
+.do-posp-table-desktop {
+  display: block;
+}
+
+.do-posp-cards-mobile {
+  display: none;
+}
+
+.do-dashboard-stat-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.do-analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.do-users-filter-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ToggleGroup: button-group on wider screens, native <select> dropdown on mobile (same choice, friendlier target size). */
+.do-togglegroup-buttons {
+  display: inline-flex;
+}
+.do-togglegroup-select {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .do-login-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .do-login-grid > section:first-child {
+    min-height: 220px !important;
+  }
+
+  .do-appshell-hamburger {
+    display: flex !important;
+  }
+
+  .do-appshell-sidebar {
+    position: fixed;
+    top: var(--do-header-height);
+    left: 0;
+    bottom: 0;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .do-appshell-sidebar-open {
+    transform: translateX(0);
+  }
+
+  .do-appshell-drawer-close {
+    display: flex !important;
+  }
+
+  .do-appshell-backdrop {
+    display: block;
+    position: fixed;
+    top: var(--do-header-height);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 30;
+  }
+
+  .do-posp-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .do-posp-detail-desktop {
+    display: none !important;
+  }
+  .do-posp-detail-mobile {
+    display: block;
+  }
+
+  .do-posp-table-desktop {
+    display: none !important;
+  }
+  .do-posp-cards-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .do-dashboard-stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .do-analytics-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .do-users-filter-form input[type="text"],
+  .do-users-filter-form input:not([type]) {
+    flex: 1 1 100%;
+  }
+  .do-users-filter-form .do-users-filter-row2 {
+    display: flex;
+    gap: 10px;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+
+  .do-togglegroup-buttons {
+    display: none !important;
+  }
+  .do-togglegroup-select {
+    display: block;
+  }
+}
+
+@media (max-width: 480px) {
+  .do-dashboard-stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
