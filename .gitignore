@@ -3,6 +3,12 @@ node_modules
 dist
 .env
 .env.local
+.env.prod
+.env.*.local
+apps/api/.env
+apps/api/.env.prod
+apps/web/.env.local
 *.log
 coverage
 *.tsbuildinfo
+docker-compose.override.yml

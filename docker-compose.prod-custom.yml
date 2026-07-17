@@ -1,0 +1,64 @@
+# Production stack with custom ports (port 80 occupied)
+# API: 8081, Web: 8082, Caddy: 8443 (HTTPS)
+#
+# Note: Since port 80 is occupied, Let's Encrypt validation via HTTP challenge
+# won't work. Configure your reverse proxy or firewall to forward:
+# - yourdomain.com:443 -> container:8443 (SSL passthrough)
+# OR manually configure DNS-01 challenge in Caddy
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - apps/api/.env.prod
+    environment:
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:8081:4000"
+    restart: unless-stopped
+    networks:
+      - posp-prod
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+        NEXT_PUBLIC_MICROSOFT_CLIENT_ID: ${NEXT_PUBLIC_MICROSOFT_CLIENT_ID}
+        NEXT_PUBLIC_MICROSOFT_TENANT_ID: ${NEXT_PUBLIC_MICROSOFT_TENANT_ID}
+        NEXT_PUBLIC_MICROSOFT_REDIRECT_URI: ${NEXT_PUBLIC_MICROSOFT_REDIRECT_URI}
+    ports:
+      - "127.0.0.1:8082:3000"
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - posp-prod
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "8443:443"
+    environment:
+      DOMAIN_APP: ${DOMAIN_APP}
+      DOMAIN_API: ${DOMAIN_API}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    depends_on:
+      - api
+      - web
+    networks:
+      - posp-prod
+
+networks:
+  posp-prod:
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -37,7 +37,7 @@ USER apiuser
 EXPOSE 4000
 WORKDIR /repo/apps/api
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD node -e "fetch('http://localhost:4000/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:4000/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 # Direct binary path, not `npx tsx` — npx falls back to fetching from the registry
 # (and failing, as a non-root user with no writable npm cache) if it can't find a
 # local install; the hoisted workspace binary is always at this path.
