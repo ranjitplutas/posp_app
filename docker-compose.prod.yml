@@ -1,0 +1,71 @@
+# Production stack: api + web + Caddy (reverse proxy with automatic HTTPS).
+# Usage — see the "Production Deployment (Hostinger)" section in README.md for the
+# full step-by-step. Short version:
+#   docker compose -f docker-compose.prod.yml build
+#   docker compose -f docker-compose.prod.yml run --rm api /repo/node_modules/.bin/tsx scripts/migrate.ts
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Reads two files docker compose auto-loads, neither committed to git:
+#   .env             — root-level, only for variable substitution in THIS file
+#                       (NEXT_PUBLIC_* build args, DOMAIN_APP, DOMAIN_API)
+#   apps/api/.env     — the API's own runtime config (DATABASE_URL, secrets, etc.)
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - apps/api/.env
+    environment:
+      NODE_ENV: production
+    # Bound to loopback only — Caddy proxies to it over the internal Docker network;
+    # nothing external reaches port 4000 directly.
+    ports:
+      - "127.0.0.1:4000:4000"
+    restart: unless-stopped
+    networks:
+      - posp-admin
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+        NEXT_PUBLIC_MICROSOFT_CLIENT_ID: ${NEXT_PUBLIC_MICROSOFT_CLIENT_ID}
+        NEXT_PUBLIC_MICROSOFT_TENANT_ID: ${NEXT_PUBLIC_MICROSOFT_TENANT_ID}
+        NEXT_PUBLIC_MICROSOFT_REDIRECT_URI: ${NEXT_PUBLIC_MICROSOFT_REDIRECT_URI}
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - posp-admin
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN_APP: ${DOMAIN_APP}
+      DOMAIN_API: ${DOMAIN_API}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    depends_on:
+      - api
+      - web
+    networks:
+      - posp-admin
+
+networks:
+  posp-admin:
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,7 @@
+{$DOMAIN_APP} {
+	reverse_proxy web:3000
+}
+
+{$DOMAIN_API} {
+	reverse_proxy api:4000
+}

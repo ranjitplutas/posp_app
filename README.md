@@ -8,10 +8,12 @@ directly to the same PostgreSQL database `posp_app`'s Directus instance uses.
 ## Repo layout
 
 ```
-apps/api/            Fastify API (TypeScript, ESM/NodeNext)
-apps/web/             Next.js App Router frontend
-packages/contracts/   Shared role/menu/error-code constants, used by both apps
-docker-compose.yml     Local dev convenience — does NOT seed the real database
+apps/api/               Fastify API (TypeScript, ESM/NodeNext)
+apps/web/                Next.js App Router frontend
+packages/contracts/      Shared role/menu/error-code constants, used by both apps
+docker-compose.yml        Local dev convenience — does NOT seed the real database
+docker-compose.prod.yml   Production stack: api + web + Caddy (reverse proxy, auto HTTPS)
+Caddyfile                 Reverse-proxy routing for the production stack
 ```
 
 ## Quick start (for a new developer)
@@ -175,19 +177,163 @@ frontend is served from (comma-separated). Defaults to
 `http://localhost:3000` for local dev — add your staging/production URL(s)
 when you deploy.
 
-## Running with Docker
+## Running with Docker (local dev)
 
 ```bash
 docker compose up --build
 ```
 
-Builds both apps from their multi-stage `Dockerfile`s and runs them as
-non-root containers, reading config from `apps/api/.env` and
-`apps/web/.env.local` (so complete steps 1–3 above first). This does **not**
-initialize or seed the real database — `DATABASE_URL` should still point at
-a real (or your own throwaway) Postgres instance, and you still run the
-migration once yourself (`npm run migrate --workspace=apps/api`, from
-outside Docker, against the same `DATABASE_URL`).
+Builds both apps from their `Dockerfile`s and runs them as non-root
+containers, reading config from `apps/api/.env` and `apps/web/.env.local` (so
+complete steps 1–3 above first). This does **not** initialize or seed the
+real database — `DATABASE_URL` should still point at a real (or your own
+throwaway) Postgres instance, and you still run the migration once yourself
+(`npm run migrate --workspace=apps/api`, from outside Docker, against the
+same `DATABASE_URL`). This compose file is dev-only; for a real deployment
+use `docker-compose.prod.yml` — see below.
+
+## Production Deployment (Hostinger VPS)
+
+This targets a **Hostinger VPS** (KVM/Cloud plan with root SSH access — not
+shared hosting, which can't run Docker) pointed at by two DNS records, e.g.
+`app.yourdomain.com` and `api.yourdomain.com` (an A record each, at the VPS's
+public IP — set these in Hostinger's DNS zone editor, or wherever your domain
+is managed, before starting). The stack is three containers: `api`, `web`,
+and `caddy` (reverse proxy with automatic Let's Encrypt HTTPS) — defined in
+[`docker-compose.prod.yml`](docker-compose.prod.yml) and
+[`Caddyfile`](Caddyfile) at the repo root.
+
+### 1. Provision the VPS
+
+SSH into the Hostinger VPS (credentials/IP from `hPanel → VPS → your
+server`), then install Docker if it's not already there:
+
+```bash
+ssh root@<your-vps-ip>
+curl -fsSL https://get.docker.com | sh
+docker compose version   # confirm the Compose plugin is present (bundled with the script above)
+```
+
+Open the firewall for HTTP/HTTPS only — the app/API ports stay internal to
+Docker, never exposed publicly:
+
+```bash
+ufw allow OpenSSH
+ufw allow 80/tcp
+ufw allow 443/tcp
+ufw enable
+```
+
+### 2. Get the code onto the server
+
+```bash
+git clone https://github.com/ranjitplutas/posp_app.git
+cd posp_app
+```
+
+(For later updates: `git pull` from this same directory — see [Updating /
+redeploying](#5-updating--redeploying) below.)
+
+### 3. Configure production environment
+
+Two `.env` files, neither committed to git:
+
+```bash
+cp .env.example .env
+cp apps/api/.env.example apps/api/.env
+```
+
+Edit **`apps/api/.env`** — this is the API's real runtime config (see the
+"Configuration" section above for what each variable means).
+Production-specific settings to double-check:
+
+```
+NODE_ENV=production
+DATABASE_URL=postgres://<user>:<password>@<host>:<port>/<database>
+DB_SSL_MODE=require                          # if your Postgres requires TLS
+APP_JWT_SECRET=<generate with the node -e command above — a real secret, not the dev one>
+CORS_ALLOWED_ORIGINS=https://app.yourdomain.com
+ADMIN_BOOTSTRAP_EMAILS=you@company.com        # set before your first login
+ENABLE_PASSWORD_LOGIN=false                   # MUST be false in production
+```
+
+Edit the root **`.env`** — this only feeds `docker-compose.prod.yml`'s Caddy
+domains and the web image's build-time `NEXT_PUBLIC_*` values (Next.js bakes
+these into the client bundle at *build* time, so they must already be the
+real public HTTPS URLs before you build):
+
+```
+DOMAIN_APP=app.yourdomain.com
+DOMAIN_API=api.yourdomain.com
+NEXT_PUBLIC_API_BASE_URL=https://api.yourdomain.com/api/v1
+NEXT_PUBLIC_MICROSOFT_CLIENT_ID=<same App Registration client ID as apps/api/.env>
+NEXT_PUBLIC_MICROSOFT_TENANT_ID=<same tenant ID as apps/api/.env>
+NEXT_PUBLIC_MICROSOFT_REDIRECT_URI=https://app.yourdomain.com/auth/callback
+```
+
+Add that redirect URI to the Azure App Registration too (**Authentication →
+Platform: SPA**), alongside the localhost one from dev.
+
+### 4. Build images, run the migration, start the stack
+
+```bash
+# Build both application images (Caddy is pulled pre-built, not built locally)
+docker compose -f docker-compose.prod.yml build
+
+# One-time (and safe to re-run — it skips already-applied migrations):
+# creates digi_posp_app_users, never touches digi_user/digi_user_verification/digi_educations
+docker compose -f docker-compose.prod.yml run --rm api /repo/node_modules/.bin/tsx scripts/migrate.ts
+
+# Start everything, detached
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Caddy requests and renews its own TLS certificates automatically the first
+time it sees traffic on each domain — no separate certbot step. First
+request to a fresh domain can take a few seconds while that happens.
+
+Verify:
+
+```bash
+curl https://api.yourdomain.com/health/live     # {"status":"ok",...}
+curl https://api.yourdomain.com/health/ready    # {"status":"ok",...} — confirms DB connectivity too
+curl -I https://app.yourdomain.com/login        # 200
+```
+
+Then sign in with Microsoft using the email you put in
+`ADMIN_BOOTSTRAP_EMAILS` — you land as an active Admin immediately. Once
+signed in as Admin, `/system-health` gives the same live DB/API/error status
+from inside the app itself.
+
+### 5. Updating / redeploying
+
+```bash
+cd posp_app
+git pull
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml run --rm api /repo/node_modules/.bin/tsx scripts/migrate.ts   # only does something if new migrations exist
+docker compose -f docker-compose.prod.yml up -d
+```
+
+`up -d` recreates only the containers whose image actually changed — Caddy
+keeps running (and keeps its certificates) unless the Caddyfile itself
+changed.
+
+### 6. Operating the stack
+
+```bash
+docker compose -f docker-compose.prod.yml ps                 # container status + health
+docker compose -f docker-compose.prod.yml logs -f api         # follow API logs
+docker compose -f docker-compose.prod.yml logs -f web         # follow web logs
+docker compose -f docker-compose.prod.yml logs -f caddy       # follow proxy/TLS logs
+docker compose -f docker-compose.prod.yml restart api         # restart just one service
+docker compose -f docker-compose.prod.yml down                # stop everything (keeps images/volumes)
+```
+
+`api` and `web` both carry a Docker `HEALTHCHECK` (hitting `/health/live` and
+`/login` respectively) — `docker compose ps` and `docker inspect` reflect
+`healthy`/`unhealthy` status directly, and `restart: unless-stopped` brings a
+crashed container back automatically.
 
 ## What's implemented
 
