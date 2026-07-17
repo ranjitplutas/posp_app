@@ -1,0 +1,26 @@
+# Local dev convenience only. Does NOT initialize or seed the real DigiSafe
+# database — DATABASE_URL should point at the real Postgres instance (or a
+# throwaway local one you stand up yourself); this compose file never creates
+# schema or data on its own.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "4000:4000"
+    env_file:
+      - apps/api/.env
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - apps/web/.env.local
+    depends_on:
+      - api
+    restart: unless-stopped

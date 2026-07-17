@@ -144,6 +144,7 @@ function PospDetailContent() {
       <VerificationTabContent
         verification={v}
         canManage={canApproveReject}
+        pospFullName={posp.fullName}
         onUpdate={(updated) => setVerifications((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))}
       />
     ),

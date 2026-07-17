@@ -1,8 +1,10 @@
 /**
  * Minimal forward-only migration runner. Applies every migrations/*.up.sql file
  * not yet recorded in schema_migrations, in filename order, each in its own
- * transaction. Only ever creates/alters tables this app owns — never touches
- * existing business tables (digi_user, digi_user_verification, digi_educations).
+ * transaction. Mostly creates/alters tables this app owns; the one exception is
+ * additive ALTER TABLE ADD COLUMN (with a DEFAULT) on the shared digi_user_verification
+ * table — safe/backward-compatible for the other app reading that same table, never
+ * a destructive change (no DROP/RENAME on existing columns of shared tables).
  */
 import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";

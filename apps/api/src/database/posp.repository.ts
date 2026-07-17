@@ -116,12 +116,13 @@ export type VerificationRow = {
   remarks: string | null;
   status: number | null;
   dateUpdated: string | null;
+  isNameMatchDone: boolean;
 };
 
 const VERIFICATION_COLUMNS = `
   id, posp_id AS "pospId", document_type AS "documentType", data, value,
   file_path AS "filePath", pdf_path AS "pdfPath", is_verified AS "isVerified", remarks, status,
-  date_updated AS "dateUpdated"
+  date_updated AS "dateUpdated", is_namematch_done AS "isNameMatchDone"
 `;
 
 export async function getVerificationsForPosp(pospId: number): Promise<VerificationRow[]> {

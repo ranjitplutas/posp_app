@@ -11,6 +11,8 @@ import {
 } from "../../database/posp.repository.js";
 import { memoizeAsync } from "../../shared/memoize.js";
 import { findUserById } from "../../database/users.repository.js";
+import { callPerfiosNameMatch } from "./name-match.client.js";
+import { env } from "../../config/env.js";
 
 function toPublicPosp(row: PospRow) {
   return {
@@ -93,6 +95,7 @@ function toPublicVerification(row: VerificationRow) {
     remarks: row.remarks,
     status: row.status,
     dateUpdated: row.dateUpdated,
+    isNameMatchDone: row.isNameMatchDone,
   };
 }
 
@@ -146,6 +149,46 @@ export async function updateVerificationField(pospId: number, verificationId: nu
   const updated = await repoUpdateVerificationField(verificationId, pospId, column, value);
   if (!updated) throw new AppError(ERROR_CODES.USER_NOT_FOUND, "Verification record not found for this POSP.");
   return withEducationLabel(updated);
+}
+
+export type NameMatchBand = "green" | "orange" | "red";
+
+function bandFor(scorePct: number): NameMatchBand {
+  if (scorePct > env.NAME_MATCH_GREEN_THRESHOLD) return "green";
+  if (scorePct > env.NAME_MATCH_ORANGE_THRESHOLD) return "orange";
+  return "red";
+}
+
+/**
+ * Calls the Perfios name-match API comparing the name entered off the document against the
+ * POSP's full name on file, then marks is_namematch_done true regardless of the match score —
+ * the check having been *performed* (by a human reviewing the result) is what gates approve/reject
+ * for education, not the score itself.
+ */
+export async function validateEducationNameMatch(pospId: number, verificationId: number, documentName: string, scope: CallerScope) {
+  const posp = await repoGetPospById(pospId, scope.role === "CLUSTER_MANAGER" ? scope.userId : undefined);
+  if (!posp) throw new AppError(ERROR_CODES.USER_NOT_FOUND, "POSP not found.");
+  if (!posp.fullName) {
+    throw new AppError(ERROR_CODES.VALIDATION_ERROR, "This POSP has no full name on file to match against.");
+  }
+
+  const rows = await getVerificationsForPosp(pospId);
+  const verification = rows.find((r) => r.id === verificationId);
+  if (!verification) throw new AppError(ERROR_CODES.USER_NOT_FOUND, "Verification record not found for this POSP.");
+  if (verification.documentType !== "education") {
+    throw new AppError(ERROR_CODES.VALIDATION_ERROR, "Name-match validation only applies to the education document type.");
+  }
+
+  const outcome = await callPerfiosNameMatch(documentName, posp.fullName);
+  const scorePct = outcome.score * 100;
+
+  const updated = await repoUpdateVerificationField(verificationId, pospId, "is_namematch_done", true);
+  if (!updated) throw new AppError(ERROR_CODES.USER_NOT_FOUND, "Verification record not found for this POSP.");
+
+  return {
+    verification: await withEducationLabel(updated),
+    nameMatch: { score: outcome.score, result: outcome.result, band: bandFor(scorePct) },
+  };
 }
 
 export async function listEducations() {

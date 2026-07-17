@@ -36,6 +36,14 @@ const envSchema = z.object({
     .string()
     .default("false")
     .transform((v) => v === "true"),
+
+  /** Perfios name-match KYC API — used by the education verification tab's "Validate Name" action. Optional: left blank, the feature just errors clearly when used instead of failing to boot. */
+  PERFIOS_API_BASE_URL: z.string().default("https://uat-hub.perfios.com"),
+  PERFIOS_API_KEY: z.string().default(""),
+  /** Score bands (0-100) for the name-match result badge — green above this. */
+  NAME_MATCH_GREEN_THRESHOLD: z.coerce.number().min(0).max(100).default(70),
+  /** Orange between this and the green threshold; red at or below this. */
+  NAME_MATCH_ORANGE_THRESHOLD: z.coerce.number().min(0).max(100).default(50),
 });
 
 export type Env = z.infer<typeof envSchema>;

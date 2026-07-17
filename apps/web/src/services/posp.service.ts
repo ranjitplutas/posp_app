@@ -1,7 +1,7 @@
 import { apiClient, apiClientWithMeta } from "../lib/http/api-client";
 import { DEFAULT_PAGE_SIZE } from "../config/constants";
 import { cached, invalidateCache } from "../lib/cache";
-import type { EducationOption, ListPospMeta, ListPospParams, PospListItem, PospVerification } from "../types/posp";
+import type { EducationOption, ListPospMeta, ListPospParams, NameMatchResult, PospListItem, PospVerification } from "../types/posp";
 
 const POSP_LIST_TTL_MS = 30_000;
 const CLUSTER_MANAGERS_TTL_MS = 5 * 60_000; // reference-ish data, changes rarely (role/status admin actions only)
@@ -60,6 +60,14 @@ export const pospService = {
     return apiClient<PospVerification>(`/posps/${pospId}/verification/${verificationId}`, {
       method: "PATCH",
       body: { field, value },
+    });
+  },
+
+  /** Education only. Calls the Perfios name-match check and marks is_namematch_done regardless of the result — that's what unlocks approve/reject. */
+  validateEducationName(pospId: number, verificationId: number, documentName: string): Promise<{ verification: PospVerification; nameMatch: NameMatchResult }> {
+    return apiClient<{ verification: PospVerification; nameMatch: NameMatchResult }>(`/posps/${pospId}/verification/${verificationId}/name-match`, {
+      method: "POST",
+      body: { documentName },
     });
   },
 

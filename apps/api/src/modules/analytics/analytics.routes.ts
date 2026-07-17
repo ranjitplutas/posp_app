@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { authenticate } from "../../middleware/authenticate.js";
 import { authorizeRoles } from "../../middleware/authorize.js";
-import { getEducationDistribution, getStateDistribution } from "./analytics.service.js";
+import { getEducationDistribution, getOnboardingFunnel, getStateDistribution } from "./analytics.service.js";
 
 export async function analyticsRoutes(app: FastifyInstance): Promise<void> {
   app.register(async (scope) => {
@@ -14,6 +14,10 @@ export async function analyticsRoutes(app: FastifyInstance): Promise<void> {
 
     scope.get("/analytics/education-distribution", { schema: { tags: ["analytics"] } }, async () => ({
       data: await getEducationDistribution(),
+    }));
+
+    scope.get("/analytics/onboarding-funnel", { schema: { tags: ["analytics"] } }, async () => ({
+      data: await getOnboardingFunnel(),
     }));
   });
 }

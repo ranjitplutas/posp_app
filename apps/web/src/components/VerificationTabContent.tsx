@@ -9,7 +9,7 @@ import { BoolPill, InfoRow } from "./InfoSection";
 import { pospService } from "../services/posp.service";
 import { useToast } from "../lib/toast/toast-context";
 import { formatDate } from "../lib/format";
-import type { PospVerification } from "../types/posp";
+import type { NameMatchResult, PospVerification } from "../types/posp";
 
 const HIDE_RAW_DATA_FOR = new Set(["pan_ocr", "education"]);
 const SHOW_DOCUMENT_PREVIEW_FOR = new Set(["education"]);
@@ -25,13 +25,22 @@ const VERIFICATION_LABEL: Record<string, string> = {
   bank_verification: "Bank account verification",
 };
 
+const NAME_MATCH_BAND_COLORS: Record<NameMatchResult["band"], { bg: string; fg: string }> = {
+  green: { bg: "var(--color-accent-soft)", fg: "var(--color-accent-dark)" },
+  orange: { bg: "var(--color-amber-soft)", fg: "var(--color-amber)" },
+  red: { bg: "var(--color-red-soft)", fg: "var(--color-red)" },
+};
+
 export function VerificationTabContent({
   verification,
   canManage,
+  pospFullName,
   onUpdate,
 }: {
   verification: PospVerification;
   canManage: boolean;
+  /** POSP's full name on file — compared against the entered document name for the education name-match check. */
+  pospFullName: string | null;
   onUpdate: (updated: PospVerification) => void;
 }) {
   const v = verification;
@@ -41,13 +50,37 @@ export function VerificationTabContent({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [documentName, setDocumentName] = useState("");
+  const [nameMatchResult, setNameMatchResult] = useState<NameMatchResult | null>(null);
+  const [nameMatchLoading, setNameMatchLoading] = useState(false);
+  const [nameMatchError, setNameMatchError] = useState<string | null>(null);
+
   const hideRawData = HIDE_RAW_DATA_FOR.has(v.documentType);
   const showPreview = SHOW_DOCUMENT_PREVIEW_FOR.has(v.documentType) && Boolean(v.filePath);
   const showRemarksBanner = SHOW_REMARKS_BANNER_FOR.has(v.documentType) && Boolean(v.remarks);
-  // Once verified, the decision is made — approve/reject only makes sense while still pending.
-  const showApproveReject = SHOW_APPROVE_REJECT_FOR.has(v.documentType) && canManage && !v.isVerified;
-  const label = VERIFICATION_LABEL[v.documentType] ?? v.documentType.replace(/_/g, " ");
   const isEducation = v.documentType === "education";
+  // Once verified, the decision is made — approve/reject only makes sense while still pending.
+  // Education also requires the name-match check to have been run at least once (regardless of its result).
+  const showApproveReject = SHOW_APPROVE_REJECT_FOR.has(v.documentType) && canManage && !v.isVerified && (!isEducation || v.isNameMatchDone);
+  const label = VERIFICATION_LABEL[v.documentType] ?? v.documentType.replace(/_/g, " ");
+
+  async function runNameMatchValidation() {
+    if (!documentName.trim()) return;
+    setNameMatchLoading(true);
+    setNameMatchError(null);
+    try {
+      const { verification: updated, nameMatch } = await pospService.validateEducationName(v.pospId, v.id, documentName.trim());
+      onUpdate(updated);
+      setNameMatchResult(nameMatch);
+      showSuccess("Name match check completed.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to validate name.";
+      setNameMatchError(message);
+      showError(message);
+    } finally {
+      setNameMatchLoading(false);
+    }
+  }
 
   async function submitDecision() {
     if (!confirming) return;
@@ -100,6 +133,76 @@ export function VerificationTabContent({
           <InfoRow label="Last Updated" value={formatDate(v.dateUpdated)} />
         </div>
       </div>
+
+      {isEducation && canManage && !v.isVerified && (
+        <div style={{ border: "1px solid var(--color-line)", borderRadius: 8, overflow: "hidden", marginTop: 14 }}>
+          <div style={{ padding: "10px 14px", background: "var(--color-bg)", fontSize: 11, fontWeight: 700, letterSpacing: 0.6, color: "var(--color-text-subtle)" }}>
+            NAME MATCH CHECK
+          </div>
+          <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+            {v.isNameMatchDone ? (
+              <div style={{ fontSize: 13, color: "var(--color-accent-dark)", fontWeight: 600 }}>✓ Name match check completed.</div>
+            ) : (
+              <>
+                <div style={{ fontSize: 11.5, color: "var(--color-text-subtle)" }}>
+                  Will be compared against the profile name: <strong>{pospFullName ?? "—"}</strong>
+                </div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-muted)" }}>Enter name as per document</label>
+                <input
+                  value={documentName}
+                  onChange={(e) => setDocumentName(e.target.value)}
+                  maxLength={300}
+                  placeholder="Full name exactly as printed on the document"
+                  style={{ padding: "8px 10px", borderRadius: 6, border: "1px solid var(--color-line)", fontSize: 13 }}
+                />
+                <button
+                  onClick={runNameMatchValidation}
+                  disabled={!documentName.trim() || nameMatchLoading}
+                  style={{
+                    alignSelf: "flex-start",
+                    padding: "8px 16px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: "var(--color-primary)",
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: 12.5,
+                    opacity: !documentName.trim() || nameMatchLoading ? 0.6 : 1,
+                  }}
+                >
+                  {nameMatchLoading ? "Validating…" : "Validate Name"}
+                </button>
+              </>
+            )}
+
+            {nameMatchResult && (
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  alignSelf: "flex-start",
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: NAME_MATCH_BAND_COLORS[nameMatchResult.band].bg,
+                  color: NAME_MATCH_BAND_COLORS[nameMatchResult.band].fg,
+                }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "currentColor", display: "inline-block" }} />
+                {Math.round(nameMatchResult.score * 100)}% match
+              </div>
+            )}
+
+            {nameMatchError && <div style={{ fontSize: 12.5, color: "var(--color-red)" }}>{nameMatchError}</div>}
+
+            {!v.isNameMatchDone && (
+              <div style={{ fontSize: 11.5, color: "var(--color-text-subtle)" }}>Approve/Reject unlock once this check has been run, regardless of the result.</div>
+            )}
+          </div>
+        </div>
+      )}
 
       {showApproveReject && (
         <div style={{ display: "flex", gap: 10, marginTop: 14 }}>

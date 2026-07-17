@@ -9,6 +9,7 @@ import {
   listEducations,
   listPospsPage,
   updateVerificationField,
+  validateEducationNameMatch,
   type CallerScope,
 } from "./posp.service.js";
 
@@ -124,6 +125,32 @@ export async function pospRoutes(app: FastifyInstance): Promise<void> {
         const { pospId, verificationId } = req.params as { pospId: number; verificationId: number };
         const { field, value } = req.body as { field: string; value: unknown };
         return { data: await updateVerificationField(pospId, verificationId, field, value, scopeFromReq(req.user!)) };
+      },
+    );
+
+    // Same scoping as the PATCH above (Cluster Manager restricted to their own assigned POSPs).
+    // Education-only — the service layer rejects any other document type.
+    scope.post(
+      "/posps/:pospId/verification/:verificationId/name-match",
+      {
+        schema: {
+          tags: ["posp"],
+          params: {
+            type: "object",
+            required: ["pospId", "verificationId"],
+            properties: { pospId: { type: "integer" }, verificationId: { type: "integer" } },
+          },
+          body: {
+            type: "object",
+            required: ["documentName"],
+            properties: { documentName: { type: "string", minLength: 1, maxLength: 300 } },
+          },
+        },
+      },
+      async (req) => {
+        const { pospId, verificationId } = req.params as { pospId: number; verificationId: number };
+        const { documentName } = req.body as { documentName: string };
+        return { data: await validateEducationNameMatch(pospId, verificationId, documentName, scopeFromReq(req.user!)) };
       },
     );
   });

@@ -46,7 +46,12 @@ export type PospVerification = {
   remarks: string | null;
   status: number | null;
   dateUpdated: string | null;
+  /** Education only — once true, approve/reject unlock. Set by the "Validate Name" action, regardless of the match result. */
+  isNameMatchDone: boolean;
 };
+
+export type NameMatchBand = "green" | "orange" | "red";
+export type NameMatchResult = { score: number; result: boolean; band: NameMatchBand };
 
 export type EducationOption = {
   id: number;
