@@ -1,7 +1,8 @@
 # Single-container image: Fastify API + Next.js web, one process each,
-# one exposed port (3000). Next.js proxies /api/v1 and /health to the API
-# process over 127.0.0.1:4000 internally (see apps/web/next.config.js) —
-# nothing but port 3000 needs to be reachable from outside the container.
+# one exposed port (8082 — avoids the 80/3000 already used by other apps on
+# the host). Next.js proxies /api/v1 and /health to the API process over
+# 127.0.0.1:4000 internally (see apps/web/next.config.js) — nothing but
+# port 8082 needs to be reachable from outside the container.
 #
 # docker build -f Dockerfile \
 #   --build-arg NEXT_PUBLIC_API_BASE_URL=/api/v1 \
@@ -61,7 +62,7 @@ COPY --chown=appuser:nodejs start.sh /repo/start.sh
 RUN chmod +x /repo/start.sh
 
 USER appuser
-EXPOSE 3000
+EXPOSE 8082
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:8082/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["/repo/start.sh"]

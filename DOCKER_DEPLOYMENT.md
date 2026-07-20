@@ -1,11 +1,12 @@
 # Docker Deployment Guide
 
-One image, one container, one port (`3000`) — API and web run as sibling
-processes inside it (see [`Dockerfile`](Dockerfile) and [`start.sh`](start.sh)).
-Next.js proxies `/api/v1/*` and `/health/*` to the Fastify API over
-`127.0.0.1:4000` internally (see `apps/web/next.config.js`), so nothing but
-port 3000 needs to be reachable from outside the container — no CORS, no
-second reverse-proxy route, no second domain.
+One image, one container, one port (`8082` — avoids the 80/3000 already used
+by other apps on the host) — API and web run as sibling processes inside it
+(see [`Dockerfile`](Dockerfile) and [`start.sh`](start.sh)). Next.js proxies
+`/api/v1/*` and `/health/*` to the Fastify API over `127.0.0.1:4000`
+internally (see `apps/web/next.config.js`), so nothing but port 8082 needs to
+be reachable from outside the container — no CORS, no second reverse-proxy
+route, no second domain.
 
 - **Local dev**: [`docker-compose.yml`](docker-compose.yml)
 - **Production**: [`docker-compose.prod-custom.yml`](docker-compose.prod-custom.yml) — routes through an existing Traefik reverse proxy on the VPS
@@ -36,9 +37,9 @@ docker compose run --rm app /repo/node_modules/.bin/tsx apps/api/scripts/migrate
 docker compose up -d
 ```
 
-- Web app: http://localhost:3000
-- API (proxied through the same container): http://localhost:3000/api/v1
-- Health: http://localhost:3000/health/live
+- Web app: http://localhost:8082
+- API (proxied through the same container): http://localhost:8082/api/v1
+- Health: http://localhost:8082/health/live
 
 ### Common commands
 
@@ -56,7 +57,7 @@ docker compose build --no-cache     # rebuild after code changes
 
 This assumes a VPS that already runs a Traefik reverse proxy for other apps
 (Docker labels wire new services into it — no Traefik config file to edit).
-If you don't have Traefik yet, point a plain `docker run -p 80:3000`/reverse
+If you don't have Traefik yet, point a plain `docker run -p 80:8082`/reverse
 proxy of your choice at the container instead; the app itself doesn't care.
 
 ### 1. DNS

@@ -1,9 +1,12 @@
-# Production — one container running API + web on a single port (3000),
+# Production — one container running API + web on a single port (8082),
 # routed through the VPS's existing Traefik via labels. No separate API
 # domain/port and no per-service routing to keep in sync — Traefik only
 # ever needs to find one router for this whole app.
 #
 # Build/run with: docker compose --env-file .env.prod -f docker-compose.prod-custom.yml <cmd>
+# COMPOSE_PROJECT_NAME (set by compose to the project/folder name, or override
+# with -p) names the Traefik router/service — keeps labels unique per deployment
+# without hardcoding a name that could collide with another app on the same Traefik.
 services:
   app:
     build:
@@ -19,17 +22,17 @@ services:
     environment:
       NODE_ENV: production
     ports:
-      - "0.0.0.0:3000:3000"
+      - "0.0.0.0:8082:8082"
     restart: unless-stopped
     networks:
       - posp-prod
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.posp-app.rule=Host(`${DOMAIN_APP}`)"
-      - "traefik.http.routers.posp-app.entrypoints=websecure"
-      - "traefik.http.routers.posp-app.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.posp-app.service=posp-app"
-      - "traefik.http.services.posp-app.loadbalancer.server.port=3000"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.rule=Host(`${DOMAIN_APP}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.entrypoints=websecure"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}.service=${COMPOSE_PROJECT_NAME}"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}.loadbalancer.server.port=8082"
 
 networks:
   posp-prod:

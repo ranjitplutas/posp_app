@@ -13,7 +13,7 @@ apps/web/                    Next.js App Router frontend
 packages/contracts/          Shared role/menu/error-code constants, used by both apps
 Dockerfile                   Single image: builds + runs API and web together
 start.sh                     Container entrypoint — runs both processes on one port
-docker-compose.yml           Local dev — one container, port 3000
+docker-compose.yml           Local dev — one container, port 8082
 docker-compose.prod-custom.yml   Production — one container, routed via existing Traefik
 ```
 
@@ -94,15 +94,16 @@ values — they must describe the **same** App Registration:
 | `MICROSOFT_TENANT_ID` / `NEXT_PUBLIC_MICROSOFT_TENANT_ID` | api / web | Directory (tenant) ID |
 | `MICROSOFT_ALLOWED_TENANT_IDS` | api | Comma-separated; usually just the one tenant ID above |
 | `MICROSOFT_AUTHORITY` | api | `https://login.microsoftonline.com/<tenant-id>` |
-| `NEXT_PUBLIC_MICROSOFT_REDIRECT_URI` | web | `http://localhost:3000/auth/callback` in dev |
+| `NEXT_PUBLIC_MICROSOFT_REDIRECT_URI` | web | `http://localhost:3000/auth/callback` (npm run dev) or `http://localhost:8082/auth/callback` (Docker) |
 
 `.env.example` ships pre-filled with the same App Registration `posp_app`
 uses. If you're reusing that registration, you only need to add **this app's
-own redirect URI** under **Azure Portal → App registrations → (the app) →
+own redirect URI(s)** under **Azure Portal → App registrations → (the app) →
 Authentication → Platform: SPA**:
 
 ```
 http://localhost:3000/auth/callback
+http://localhost:8082/auth/callback
 ```
 
 (plus your production URL's `/auth/callback` when you deploy). If instead
@@ -189,7 +190,7 @@ when you deploy.
 docker compose up --build
 ```
 
-One container, one port (`http://localhost:3000`) — API and web run as
+One container, one port (`http://localhost:8082`) — API and web run as
 sibling processes inside it, reading config from `apps/api/.env` and the
 root `.env` (build args), so complete steps 1–3 above first. This does
 **not** initialize or seed the real database — `DATABASE_URL` should still

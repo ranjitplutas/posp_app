@@ -1,4 +1,4 @@
-# Local development — one container running API + web on a single port (3000).
+# Local development — one container running API + web on a single port (8082).
 # docker-compose.yml auto-loads ./.env for the build args below.
 # Runtime secrets (DATABASE_URL, JWT secret, etc.) come from apps/api/.env.
 services:
@@ -10,9 +10,9 @@ services:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api/v1}
         NEXT_PUBLIC_MICROSOFT_CLIENT_ID: ${NEXT_PUBLIC_MICROSOFT_CLIENT_ID}
         NEXT_PUBLIC_MICROSOFT_TENANT_ID: ${NEXT_PUBLIC_MICROSOFT_TENANT_ID}
-        NEXT_PUBLIC_MICROSOFT_REDIRECT_URI: ${NEXT_PUBLIC_MICROSOFT_REDIRECT_URI:-http://localhost:3000/auth/callback}
+        NEXT_PUBLIC_MICROSOFT_REDIRECT_URI: ${NEXT_PUBLIC_MICROSOFT_REDIRECT_URI:-http://localhost:8082/auth/callback}
     ports:
-      - "3000:3000"
+      - "8082:8082"
     env_file:
       - apps/api/.env
     restart: unless-stopped

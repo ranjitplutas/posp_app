@@ -61,8 +61,8 @@ Write-Host "========================================" -ForegroundColor Green
 Write-Host "Setup Complete!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "Web App:  http://localhost:3000" -ForegroundColor Cyan
-Write-Host "API:      http://localhost:3000/api/v1  (proxied through the same container)" -ForegroundColor Cyan
+Write-Host "Web App:  http://localhost:8082" -ForegroundColor Cyan
+Write-Host "API:      http://localhost:8082/api/v1  (proxied through the same container)" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Commands:" -ForegroundColor Cyan
 Write-Host "  Logs:          docker compose logs -f" -ForegroundColor White

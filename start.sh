@@ -8,7 +8,7 @@ set -e
 cd /repo/apps/api && PORT=4000 /repo/node_modules/.bin/tsx src/server.ts &
 API_PID=$!
 
-cd /repo && HOSTNAME=0.0.0.0 PORT=3000 INTERNAL_API_URL=http://127.0.0.1:4000 node apps/web/server.js &
+cd /repo && HOSTNAME=0.0.0.0 PORT=8082 INTERNAL_API_URL=http://127.0.0.1:4000 node apps/web/server.js &
 WEB_PID=$!
 
 trap 'kill -TERM $API_PID $WEB_PID 2>/dev/null' TERM INT
