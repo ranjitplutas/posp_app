@@ -1,36 +1,18 @@
-# Local development — Node.js API and Next.js UI containers
-# DATABASE_URL in apps/api/.env should point to your remote PostgreSQL instance
+# Local development — one container running API + web on a single port (3000).
+# docker-compose.yml auto-loads ./.env for the build args below.
+# Runtime secrets (DATABASE_URL, JWT secret, etc.) come from apps/api/.env.
 services:
-  api:
+  app:
     build:
       context: .
-      dockerfile: apps/api/Dockerfile
-    ports:
-      - "4000:4000"
-    env_file:
-      - apps/api/.env
-    restart: unless-stopped
-    networks:
-      - posp-dev
-
-  web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
+      dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:4000/api/v1}
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api/v1}
         NEXT_PUBLIC_MICROSOFT_CLIENT_ID: ${NEXT_PUBLIC_MICROSOFT_CLIENT_ID}
         NEXT_PUBLIC_MICROSOFT_TENANT_ID: ${NEXT_PUBLIC_MICROSOFT_TENANT_ID}
         NEXT_PUBLIC_MICROSOFT_REDIRECT_URI: ${NEXT_PUBLIC_MICROSOFT_REDIRECT_URI:-http://localhost:3000/auth/callback}
     ports:
       - "3000:3000"
     env_file:
-      - apps/web/.env.local
-    depends_on:
-      - api
+      - apps/api/.env
     restart: unless-stopped
-    networks:
-      - posp-dev
-
-networks:
-  posp-dev:

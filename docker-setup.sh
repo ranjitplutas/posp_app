@@ -50,7 +50,7 @@ docker compose build
 
 echo ""
 echo "Running database migrations..."
-docker compose run --rm api /repo/node_modules/.bin/tsx scripts/migrate.ts
+docker compose run --rm app /repo/node_modules/.bin/tsx apps/api/scripts/migrate.ts
 
 if [ $? -ne 0 ]; then
     echo "WARNING: Migrations failed"
@@ -58,7 +58,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo ""
-echo "Starting containers..."
+echo "Starting container..."
 docker compose up -d
 
 echo ""
@@ -67,12 +67,11 @@ echo "Setup Complete!"
 echo "========================================="
 echo ""
 echo "Access your application:"
-echo "  Web App: http://localhost:3000"
-echo "  API:     http://localhost:4000/api/v1"
+echo "  Web App:  http://localhost:3000"
+echo "  API:      http://localhost:3000/api/v1  (proxied through the same container)"
 echo ""
 echo "Useful commands:"
 echo "  View logs:     docker compose logs -f"
 echo "  Stop:          docker compose down"
-echo "  Restart API:   docker compose restart api"
-echo "  Restart Web:   docker compose restart web"
+echo "  Restart:       docker compose restart app"
 echo ""

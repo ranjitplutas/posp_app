@@ -46,14 +46,14 @@ docker compose build
 
 Write-Host ""
 Write-Host "Running migrations..." -ForegroundColor Yellow
-docker compose run --rm api /repo/node_modules/.bin/tsx scripts/migrate.ts
+docker compose run --rm app /repo/node_modules/.bin/tsx apps/api/scripts/migrate.ts
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Migrations failed - check database connection" -ForegroundColor Yellow
 }
 
 Write-Host ""
-Write-Host "Starting services..." -ForegroundColor Yellow
+Write-Host "Starting container..." -ForegroundColor Yellow
 docker compose up -d
 
 Write-Host ""
@@ -61,12 +61,11 @@ Write-Host "========================================" -ForegroundColor Green
 Write-Host "Setup Complete!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "Web App: http://localhost:3000" -ForegroundColor Cyan
-Write-Host "API:     http://localhost:4000/api/v1" -ForegroundColor Cyan
+Write-Host "Web App:  http://localhost:3000" -ForegroundColor Cyan
+Write-Host "API:      http://localhost:3000/api/v1  (proxied through the same container)" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Commands:" -ForegroundColor Cyan
 Write-Host "  Logs:          docker compose logs -f" -ForegroundColor White
 Write-Host "  Stop:          docker compose down" -ForegroundColor White
-Write-Host "  Restart API:   docker compose restart api" -ForegroundColor White
-Write-Host "  Restart Web:   docker compose restart web" -ForegroundColor White
+Write-Host "  Restart:       docker compose restart app" -ForegroundColor White
 Write-Host ""
