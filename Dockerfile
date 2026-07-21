@@ -51,6 +51,8 @@ COPY --from=build --chown=appuser:nodejs /repo/package.json /repo/package.json
 COPY --from=build --chown=appuser:nodejs /repo/apps/api/package.json /repo/apps/api/package.json
 COPY --from=build --chown=appuser:nodejs /repo/packages/contracts /repo/packages/contracts
 COPY --from=build --chown=appuser:nodejs /repo/apps/api/src /repo/apps/api/src
+COPY --from=build --chown=appuser:nodejs /repo/apps/api/scripts /repo/apps/api/scripts
+COPY --from=build --chown=appuser:nodejs /repo/apps/api/migrations /repo/apps/api/migrations
 COPY --from=build --chown=appuser:nodejs /repo/apps/api/tsconfig.json /repo/apps/api/tsconfig.json
 
 # Web: standalone Next.js output.
