@@ -31,6 +31,71 @@ const NAME_MATCH_BAND_COLORS: Record<NameMatchResult["band"], { bg: string; fg: 
   red: { bg: "var(--color-red-soft)", fg: "var(--color-red)" },
 };
 
+// Extract document-specific fields from verification data
+function getDocumentFields(verification: PospVerification): Record<string, string> {
+  const { documentType, data } = verification;
+  const fields: Record<string, string> = {};
+
+  if (!data) return fields;
+
+  if (documentType === "pan_ocr" || documentType === "pan_verification") {
+    // PAN: show date of birth
+    if (data.details?.dob?.value) {
+      fields["Date of Birth"] = data.details.dob.value;
+    }
+    if (data.details?.name?.value) {
+      fields["Name"] = data.details.name.value;
+    }
+    if (data.details?.pan?.value) {
+      fields["PAN Number"] = data.details.pan.value;
+    }
+  } else if (documentType === "aadhar") {
+    // Aadhaar: look for aadhaar back or front bottom type
+    let details: any = null;
+    if (Array.isArray(data)) {
+      const aadhaarBack = data.find((item: any) => item.type === "aadhaar back");
+      const aadhaarFront = data.find((item: any) => item.type === "aadhaar front bottom");
+      details = aadhaarBack?.details || aadhaarFront?.details;
+    } else if (data.details) {
+      details = data.details;
+    }
+
+    if (details) {
+      if (details.aadhaar?.value) {
+        fields["Aadhaar No"] = details.aadhaar.value;
+      }
+      if (details.name?.value) {
+        fields["Name"] = details.name.value;
+      }
+      if (details.dob?.value) {
+        fields["Date of Birth"] = details.dob.value;
+      }
+      if (details.gender?.value) {
+        fields["Gender"] = details.gender.value;
+      }
+      if (details.address?.value) {
+        fields["Address"] = details.address.value;
+      }
+    }
+  } else if (documentType === "bank" || documentType === "bank_verification") {
+    // Bank: show account details
+    if (data.details?.accountName?.value) {
+      fields["Account Name"] = data.details.accountName.value;
+    }
+    if (data.details?.accountNumber?.value) {
+      fields["Account Number"] = data.details.accountNumber.value;
+    }
+    if (data.details?.ifsc?.value) {
+      fields["IFSC Code"] = data.details.ifsc.value;
+    }
+    if (data.details?.bankName?.value) {
+      fields["Bank Name"] = data.details.bankName.value;
+    }
+  }
+
+  return fields;
+}
+
 export function VerificationTabContent({
   verification,
   canManage,
@@ -104,6 +169,9 @@ export function VerificationTabContent({
     }
   }
 
+  const documentFields = getDocumentFields(v);
+  const hasDocumentFields = Object.keys(documentFields).length > 0;
+
   const detailsColumn = (
     <div>
       <div style={{ border: "1px solid var(--color-line)", borderRadius: 8, overflow: "hidden" }}>
@@ -128,9 +196,17 @@ export function VerificationTabContent({
               </span>
             }
           />
-          <InfoRow label={isEducation ? "Qualification" : "Value"} value={v.valueLabel ?? v.value ?? "—"} />
-          <InfoRow label="Auto-Verified" value={<BoolPill value={v.isVerified} />} />
-          <InfoRow label="Last Updated" value={formatDate(v.dateUpdated)} />
+          {hasDocumentFields ? (
+            Object.entries(documentFields).map(([label, value]) => (
+              <InfoRow key={label} label={label} value={value || "—"} />
+            ))
+          ) : (
+            <>
+              <InfoRow label={isEducation ? "Qualification" : "Value"} value={v.valueLabel ?? v.value ?? "—"} />
+              <InfoRow label="Auto-Verified" value={<BoolPill value={v.isVerified} />} />
+              <InfoRow label="Last Updated" value={formatDate(v.dateUpdated)} />
+            </>
+          )}
         </div>
       </div>
 
